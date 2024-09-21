@@ -68,7 +68,7 @@ public class Main extends JFrame {
                 String coordenadaY = inputFieldY.getText();
 
                 // Aquí defines la ruta a tu base de datos
-                String dbPath = "Hackathon\\src\\main\\databases\\Database.accdb"; // Cambia esto por la ruta real a tu archivo .accdb
+                String dbPath = "Hackathon\\src\\main\\databases\\Cultivos.accdb"; // Cambia esto por la ruta real a tu archivo .accdb
 
                 // Mostrar los valores en la consola para depuración
                 System.out.println("Valor X ingresado: " + coordenadaX);
