@@ -13,5 +13,45 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    
+    <dependencies>
+    <!-- Dependencia principal de UCanAccess -->
+    <dependency>
+        <groupId>net.sf.ucanaccess</groupId>
+        <artifactId>ucanaccess</artifactId>
+        <version>5.0.1</version> <!-- Cambia a la última versión que descargues -->
+    </dependency>
+    
+    <!-- Dependencias requeridas por UCanAccess -->
+    <dependency>
+        <groupId>org.hsqldb</groupId>
+        <artifactId>hsqldb</artifactId>
+        <version>2.5.1</version> <!-- Puede variar según la versión -->
+    </dependency>
+
+    <dependency>
+        <groupId>com.healthmarketscience.jackcess</groupId>
+        <artifactId>jackcess</artifactId>
+        <version>3.0.1</version> <!-- Puede variar según la versión -->
+    </dependency>
+
+    <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>2.6</version>
+    </dependency>
+
+    <dependency>
+        <groupId>commons-logging</groupId>
+        <artifactId>commons-logging</artifactId>
+        <version>1.2</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>1.60</version>
+    </dependency>
+</dependencies>
 
 </project>

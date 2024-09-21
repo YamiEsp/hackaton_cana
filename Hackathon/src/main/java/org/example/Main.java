@@ -1,4 +1,4 @@
-package org.gui;
+package org.example;
 
 import javax.swing.*;
 import java.awt.*;
@@ -68,7 +68,7 @@ public class Main extends JFrame {
                 String coordenadaY = inputFieldY.getText();
 
                 // Aquí defines la ruta a tu base de datos
-                String dbPath = "ruta/a/tu/base_de_datos.accdb"; // Cambia esto por la ruta real a tu archivo .accdb
+                String dbPath = "Hackathon\\src\\main\\databases\\Database.accdb"; // Cambia esto por la ruta real a tu archivo .accdb
 
                 // Mostrar los valores en la consola para depuración
                 System.out.println("Valor X ingresado: " + coordenadaX);
@@ -89,20 +89,27 @@ public class Main extends JFrame {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
-
+    
         try {
             // Conectar a la base de datos usando el path que se pasa como argumento
-            conn = Conexion(dbPath);
-
+            System.out.println("Intentando conectar a la base de datos en: " + dbPath);
+            conn = Bd.Conexion(dbPath);
+    
+            // Verificar si la conexión es nula
+            if (conn == null) {
+                JOptionPane.showMessageDialog(null, "Conexión a la base de datos fallida. Verifique la ruta de la base de datos.");
+                return;
+            }
+    
             // Crear la consulta SQL usando los valores de X e Y
             String sql = "SELECT * FROM coordenadas WHERE x = ? AND y = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, x);
             stmt.setString(2, y);
-
+    
             // Ejecutar la consulta
             rs = stmt.executeQuery();
-
+    
             // Procesar los resultados
             if (rs.next()) {
                 String resultado = "Resultado encontrado: X = " + rs.getString("x") + ", Y = " + rs.getString("y");
@@ -110,7 +117,7 @@ public class Main extends JFrame {
             } else {
                 JOptionPane.showMessageDialog(null, "No se encontraron resultados para las coordenadas ingresadas.");
             }
-
+    
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos.");
@@ -123,28 +130,5 @@ public class Main extends JFrame {
                 e.printStackTrace();
             }
         }
-    }
-
-    // Método para establecer la conexión
-    public static Connection Conexion(String dbpath) throws ClassNotFoundException {
-        Connection connection = null;
-        try {
-            // Cargar el driver UCanAccess
-            Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
-
-            // Usar un path relativo para acceder a la base de datos
-            File dbFile = new File(dbpath);
-
-            // Construir la URL JDBC con la ruta relativa
-            String url = "jdbc:ucanaccess://" + dbFile.getAbsolutePath();
-
-            // Establecer la conexión a la base de datos
-            connection = DriverManager.getConnection(url);
-
-            System.out.println("Conexión a la base de datos " + dbFile.getName() + " establecida");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return connection;
     }
 }
