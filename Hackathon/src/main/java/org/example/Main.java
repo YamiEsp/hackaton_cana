@@ -1,7 +1,11 @@
-package org.example;
+package org.gui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.sql.*;
 
 public class Main extends JFrame {
 
@@ -19,7 +23,6 @@ public class Main extends JFrame {
         JLabel label = new JLabel("Introduce tus coordenadas:");
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.insets = new Insets(10, 10, 10, 10);
         frame.add(label, gbc);
 
         // Label para X
@@ -53,11 +56,95 @@ public class Main extends JFrame {
         // Botón
         JButton nextButton = new JButton("Siguiente");
         gbc.gridx = 1; // Segunda columna
-        gbc.gridy = 2; // Tercera fila
+        gbc.gridy = 3; // Tercera fila
         gbc.anchor = GridBagConstraints.LINE_START; // Alinea el botón a la izquierda
         frame.add(nextButton, gbc);
 
+        // Acción del botón
+        nextButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String coordenadaX = inputFieldX.getText();
+                String coordenadaY = inputFieldY.getText();
+
+                // Aquí defines la ruta a tu base de datos
+                String dbPath = "ruta/a/tu/base_de_datos.accdb"; // Cambia esto por la ruta real a tu archivo .accdb
+
+                // Mostrar los valores en la consola para depuración
+                System.out.println("Valor X ingresado: " + coordenadaX);
+                System.out.println("Valor Y ingresado: " + coordenadaY);
+                System.out.println("Ruta de la base de datos: " + dbPath);
+
+                // Llamar a realizarConsulta pasándole las coordenadas y la ruta
+                realizarConsulta(coordenadaX, coordenadaY, dbPath);
+            }
+        });
+
         // Mostrar la ventana
         frame.setVisible(true);
+    }
+
+    // Método para realizar la consulta a la base de datos
+    private static void realizarConsulta(String x, String y, String dbPath) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            // Conectar a la base de datos usando el path que se pasa como argumento
+            conn = Conexion(dbPath);
+
+            // Crear la consulta SQL usando los valores de X e Y
+            String sql = "SELECT * FROM coordenadas WHERE x = ? AND y = ?";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, x);
+            stmt.setString(2, y);
+
+            // Ejecutar la consulta
+            rs = stmt.executeQuery();
+
+            // Procesar los resultados
+            if (rs.next()) {
+                String resultado = "Resultado encontrado: X = " + rs.getString("x") + ", Y = " + rs.getString("y");
+                JOptionPane.showMessageDialog(null, resultado);
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontraron resultados para las coordenadas ingresadas.");
+            }
+
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos.");
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Método para establecer la conexión
+    public static Connection Conexion(String dbpath) throws ClassNotFoundException {
+        Connection connection = null;
+        try {
+            // Cargar el driver UCanAccess
+            Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+
+            // Usar un path relativo para acceder a la base de datos
+            File dbFile = new File(dbpath);
+
+            // Construir la URL JDBC con la ruta relativa
+            String url = "jdbc:ucanaccess://" + dbFile.getAbsolutePath();
+
+            // Establecer la conexión a la base de datos
+            connection = DriverManager.getConnection(url);
+
+            System.out.println("Conexión a la base de datos " + dbFile.getName() + " establecida");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return connection;
     }
 }
