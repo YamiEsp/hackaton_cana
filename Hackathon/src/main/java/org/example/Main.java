@@ -70,7 +70,14 @@ public class Main extends JFrame {
         gbc.anchor = GridBagConstraints.LINE_START; // Alinea el botón a la izquierda
         frame.add(nextButton, gbc);
 
-        // Llamar al método que llena el ComboBox de estados con datos de la base de datos
+        JLabel labelPlantas = new JLabel("plantas");
+        gbc.gridx = 0; // Primera columna (label a la izquierda)
+        gbc.gridy = 5; // Tercera fila
+        gbc.anchor = GridBagConstraints.LINE_END; // Alinea a la derecha de la celda
+        frame.add(labelPlantas, gbc);
+
+        // Llamar al método que llena el ComboBox de estados con datos de la base de
+        // datos
         llenarComboBoxEstados(comboBoxEdo);
 
         // Acción al seleccionar un estado
@@ -98,18 +105,13 @@ public class Main extends JFrame {
         nextButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Obtener la selección del ComboBox de municipios
-                String municipioSeleccionado = (String) comboBoxMunic.getSelectedItem();
-
-                // Aquí defines la ruta a tu base de datos
-                String dbPath = "Hackathon\\src\\main\\databases\\Cultivos.accdb"; // Cambia esto por la ruta real
-
-                // Mostrar los valores en la consola para depuración
-                System.out.println("Municipio seleccionado: " + municipioSeleccionado);
-                System.out.println("Ruta de la base de datos: " + dbPath);
-
-                // Realizar consulta usando el municipio seleccionado
-                realizarConsulta(municipioSeleccionado, dbPath);
+                // Obtener las selecciones de los ComboBox
+                String caderSeleccionado = (String) comboBoxCader.getSelectedItem();
+                String estadoSeleccionado = (String) comboBoxEdo.getSelectedItem();
+                String municipioSeleccionado = (String) comboBoxMunic.getSelectedItem(); // O cualquier otra columna
+        
+                // Llamar al método que realiza la consulta en base a los ComboBox
+                realizarConsultaFiltrada(caderSeleccionado, estadoSeleccionado, municipioSeleccionado, labelPlantas);
             }
         });
 
@@ -122,8 +124,8 @@ public class Main extends JFrame {
         String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
 
         try (Connection conn = DriverManager.getConnection(url);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM NORM_TT_Estado")) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM NORM_TT_Estado")) {
 
             // Limpiar el ComboBox antes de llenarlo
             comboBoxEdo.removeAllItems();
@@ -146,10 +148,12 @@ public class Main extends JFrame {
         String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
 
         try (Connection conn = DriverManager.getConnection(url);
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Cierre_agr_mun_2023 WHERE Nomestado = '"+estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase()+"'")) {
+                PreparedStatement stmt = conn
+                        .prepareStatement("SELECT DISTINCT Nomcader FROM Cierre_agr_mun_2023 WHERE Nomestado = '"
+                                + estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase() + "'")) {
 
             System.out.println(estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase());
-            //stmt.setString(1, estado); // Establece el parámetro del estado
+            // stmt.setString(1, estado); // Establece el parámetro del estado
 
             try (ResultSet rs = stmt.executeQuery()) {
                 // Limpiar el ComboBox antes de llenarlo
@@ -157,7 +161,8 @@ public class Main extends JFrame {
 
                 // Llenar el JComboBox con los datos de la base de datos
                 while (rs.next()) {
-                    String cader = rs.getString("Nomcader"); // Cambia "Nommunicipio" por el nombre correcto de la columna
+                    String cader = rs.getString("Nomcader"); // Cambia "Nommunicipio" por el nombre correcto de la
+                                                             // columna
                     comboBoxCader.addItem(cader);
                 }
             }
@@ -173,10 +178,12 @@ public class Main extends JFrame {
         String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
 
         try (Connection conn = DriverManager.getConnection(url);
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Cierre_agr_mun_2023 WHERE Nomcader = '"+ cader.substring(0, 1).toUpperCase() + cader.substring(1).toLowerCase()+"'")) {
+                PreparedStatement stmt = conn
+                        .prepareStatement("SELECT DISTINCT Nommunicipio FROM Cierre_agr_mun_2023 WHERE Nomcader = '"
+                                + cader.substring(0, 1).toUpperCase() + cader.substring(1).toLowerCase() + "'")) {
 
             System.out.println(cader.substring(0, 1).toUpperCase() + cader.substring(1).toLowerCase());
-            //stmt.setString(1, estado); // Establece el parámetro del estado
+            // stmt.setString(1, estado); // Establece el parámetro del estado
 
             try (ResultSet rs = stmt.executeQuery()) {
                 // Limpiar el ComboBox antes de llenarlo
@@ -184,7 +191,8 @@ public class Main extends JFrame {
 
                 // Llenar el JComboBox con los datos de la base de datos
                 while (rs.next()) {
-                    String munic = rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el nombre correcto de la columna
+                    String munic = rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el nombre correcto de la
+                                                                 // columna
                     comboBoxMunic.addItem(munic);
                 }
             }
@@ -196,54 +204,37 @@ public class Main extends JFrame {
         }
     }
 
-    // Método para realizar la consulta a la base de datos
-    private static void realizarConsulta(String municipio, String dbPath) {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        try {
-            // Conectar a la base de datos usando el path que se pasa como argumento
-            System.out.println("Intentando conectar a la base de datos en: " + dbPath);
-            conn = Bd.Conexion(dbPath);
-
-            // Verificar si la conexión es nula
-            if (conn == null) {
-                JOptionPane.showMessageDialog(null,
-                        "Conexión a la base de datos fallida. Verifique la ruta de la base de datos.");
-                return;
+    private static void realizarConsultaFiltrada(String cader, String estado, String municipio, JLabel labelPlantas) {
+        String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
+    
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Cierre_agr_mun_2023 WHERE Nomcader = ? AND Nomestado = ? AND Nommunicipio = ?")) {
+    
+            // Formatear estado
+            String estadoFormateado = estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase();
+    
+            // Establecer los parámetros
+            stmt.setString(1, cader);
+            stmt.setString(2, estadoFormateado);
+            stmt.setString(3, municipio);
+    
+            try (ResultSet rs = stmt.executeQuery()) {
+                // Limpiar el JLabel antes de mostrar nuevos resultados
+                labelPlantas.setText("");
+    
+                // Procesar los resultados
+                if (rs.next()) {
+                    String resultado = "Resultado encontrado: " + rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el campo deseado
+                    labelPlantas.setText(resultado);
+                } else {
+                    labelPlantas.setText("No se encontraron resultados para la búsqueda.");
+                }
             }
-
-            // Crear la consulta SQL usando el municipio seleccionado
-            String sql = "SELECT * FROM Cierre_agr_mun_2023 WHERE Nommunicipio = ?"; // Cambia "TuTabla" por el nombre correcto de la tabla
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, municipio);
-
-            // Ejecutar la consulta
-            rs = stmt.executeQuery();
-
-            // Procesar los resultados
-            if (rs.next()) {
-                String resultado = "Resultado encontrado para el municipio: " + rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el campo deseado
-                JOptionPane.showMessageDialog(null, resultado);
-            } else {
-                JOptionPane.showMessageDialog(null, "No se encontraron resultados para el municipio seleccionado.");
-            }
-
-        } catch (SQLException | ClassNotFoundException e) {
+    
+        } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos.");
-        } finally {
-            try {
-                if (rs != null)
-                    rs.close();
-                if (stmt != null)
-                    stmt.close();
-                if (conn != null)
-                    conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            labelPlantas.setText("Error al conectarse a la base de datos.");
         }
     }
+    
 }
