@@ -7,12 +7,14 @@ import java.awt.event.ActionListener;
 import java.sql.*;
 
 public class Main extends JFrame {
+    private static JTextArea textAreaCultivos; // JTextArea para mostrar cultivos
+    private static JTextArea textAreaPlagas; // JTextArea para mostrar plagas
 
     public static void main(String[] args) {
         // Crear el frame
         JFrame frame = new JFrame("TerraDrone");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(720, 480);
+        frame.setSize(1080, 720);
         frame.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -70,14 +72,25 @@ public class Main extends JFrame {
         gbc.anchor = GridBagConstraints.LINE_START; // Alinea el botón a la izquierda
         frame.add(nextButton, gbc);
 
-        JLabel labelPlantas = new JLabel("plantas");
-        gbc.gridx = 0; // Primera columna (label a la izquierda)
-        gbc.gridy = 5; // Tercera fila
-        gbc.anchor = GridBagConstraints.LINE_END; // Alinea a la derecha de la celda
-        frame.add(labelPlantas, gbc);
+        // JTextArea para mostrar cultivos
+        textAreaCultivos = new JTextArea(10, 30); // Ajusta el tamaño según sea necesario
+        textAreaCultivos.setEditable(false); // Para que no se pueda editar
+        textAreaCultivos.setVisible(false); // Inicialmente oculto
+        gbc.gridx = 0; // Ajusta según donde quieras que aparezca
+        gbc.gridy = 5; // Ajusta según la fila
+        gbc.gridwidth = 2; // Ocupa dos columnas
+        frame.add(new JScrollPane(textAreaCultivos), gbc); // Usa JScrollPane para que sea desplazable
 
-        // Llamar al método que llena el ComboBox de estados con datos de la base de
-        // datos
+        // JTextArea para mostrar plagas
+        textAreaPlagas = new JTextArea(10, 30); // Ajusta el tamaño según sea necesario
+        textAreaPlagas.setEditable(false); // Para que no se pueda editar
+        textAreaPlagas.setVisible(false); // Inicialmente oculto
+        gbc.gridx = 0; // Ajusta según donde quieras que aparezca
+        gbc.gridy = 6; // Ajusta según la fila
+        gbc.gridwidth = 2; // Ocupa dos columnas
+        frame.add(new JScrollPane(textAreaPlagas), gbc); // Usa JScrollPane para que sea desplazable
+
+        // Llamar al método que llena el ComboBox de estados con datos de la base de datos
         llenarComboBoxEstados(comboBoxEdo);
 
         // Acción al seleccionar un estado
@@ -86,18 +99,19 @@ public class Main extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 // Obtener el estado seleccionado
                 String estadoSeleccionado = (String) comboBoxEdo.getSelectedItem();
-                // Llenar el ComboBox de municipios basado en el estado seleccionado
+                // Llenar el ComboBox de cader basado en el estado seleccionado
                 llenarComboBoxCader(comboBoxCader, estadoSeleccionado);
             }
         });
 
+        // Acción al seleccionar cader
         comboBoxCader.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Obtener el estado seleccionado
-                String municipioSeleccionado = (String) comboBoxCader.getSelectedItem();
-                // Llenar el ComboBox de municipios basado en el estado seleccionado
-                llenarComboBoxMunicipios(comboBoxMunic, municipioSeleccionado);
+                // Obtener el cader seleccionado
+                String caderSeleccionado = (String) comboBoxCader.getSelectedItem();
+                // Llenar el ComboBox de municipios basado en el cader seleccionado
+                llenarComboBoxMunic(comboBoxMunic, caderSeleccionado);
             }
         });
 
@@ -105,13 +119,30 @@ public class Main extends JFrame {
         nextButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Obtener las selecciones de los ComboBox
+                // Obtener la selección del ComboBox de municipios
+                String municipioSeleccionado = (String) comboBoxMunic.getSelectedItem();
                 String caderSeleccionado = (String) comboBoxCader.getSelectedItem();
                 String estadoSeleccionado = (String) comboBoxEdo.getSelectedItem();
-                String municipioSeleccionado = (String) comboBoxMunic.getSelectedItem(); // O cualquier otra columna
-        
-                // Llamar al método que realiza la consulta en base a los ComboBox
-                realizarConsultaFiltrada(caderSeleccionado, estadoSeleccionado, municipioSeleccionado, labelPlantas);
+
+                // Aquí defines la ruta a tu base de datos
+                String dbPath = "Hackathon\\src\\main\\databases\\Cultivos.accdb"; // Cambia esto por la ruta real
+
+                // Mostrar los valores en la consola para depuración
+                System.out.println("Municipio seleccionado: " + municipioSeleccionado);
+                System.out.println("Cader seleccionado: " + caderSeleccionado);
+                System.out.println("Estado seleccionado: " + estadoSeleccionado);
+                System.out.println("Ruta de la base de datos: " + dbPath);
+
+                // Realizar consulta usando el municipio seleccionado
+                String cultivo = realizarConsultaCultivo(municipioSeleccionado, caderSeleccionado, estadoSeleccionado);
+
+                // Si se encontró un cultivo, hacer visible el JTextArea de cultivos
+                if (!cultivo.isEmpty()) {
+                    textAreaCultivos.setVisible(true);
+                }
+
+                // Buscar plagas para el cultivo obtenido
+                buscarPlagasPorCultivo(cultivo, textAreaPlagas);
             }
         });
 
@@ -143,17 +174,15 @@ public class Main extends JFrame {
         }
     }
 
-    // Método para llenar el ComboBox de municipios basado en el estado seleccionado
+    // Método para llenar el ComboBox de cader basado en el estado seleccionado
     private static void llenarComboBoxCader(JComboBox<String> comboBoxCader, String estado) {
         String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
 
         try (Connection conn = DriverManager.getConnection(url);
                 PreparedStatement stmt = conn
-                        .prepareStatement("SELECT DISTINCT Nomcader FROM Cierre_agr_mun_2023 WHERE Nomestado = '"
-                                + estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase() + "'")) {
+                        .prepareStatement("SELECT DISTINCT Nomcader FROM Cierre_agr_mun_2023 WHERE Nomestado = ?")) {
 
-            System.out.println(estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase());
-            // stmt.setString(1, estado); // Establece el parámetro del estado
+            stmt.setString(1, estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase());
 
             try (ResultSet rs = stmt.executeQuery()) {
                 // Limpiar el ComboBox antes de llenarlo
@@ -161,8 +190,7 @@ public class Main extends JFrame {
 
                 // Llenar el JComboBox con los datos de la base de datos
                 while (rs.next()) {
-                    String cader = rs.getString("Nomcader"); // Cambia "Nommunicipio" por el nombre correcto de la
-                                                             // columna
+                    String cader = rs.getString("Nomcader"); // Cambia "Nomcader" por el nombre correcto de la columna
                     comboBoxCader.addItem(cader);
                 }
             }
@@ -174,16 +202,15 @@ public class Main extends JFrame {
         }
     }
 
-    private static void llenarComboBoxMunicipios(JComboBox<String> comboBoxMunic, String cader) {
+    // Método para llenar el ComboBox de municipios basado en el cader seleccionado
+    private static void llenarComboBoxMunic(JComboBox<String> comboBoxMunic, String cader) {
         String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
 
         try (Connection conn = DriverManager.getConnection(url);
                 PreparedStatement stmt = conn
-                        .prepareStatement("SELECT DISTINCT Nommunicipio FROM Cierre_agr_mun_2023 WHERE Nomcader = '"
-                                + cader.substring(0, 1).toUpperCase() + cader.substring(1).toLowerCase() + "'")) {
+                        .prepareStatement("SELECT DISTINCT Nommunicipio FROM Cierre_agr_mun_2023 WHERE Nomcader = ?")) {
 
-            System.out.println(cader.substring(0, 1).toUpperCase() + cader.substring(1).toLowerCase());
-            // stmt.setString(1, estado); // Establece el parámetro del estado
+            stmt.setString(1, cader.substring(0, 1).toUpperCase() + cader.substring(1).toLowerCase());
 
             try (ResultSet rs = stmt.executeQuery()) {
                 // Limpiar el ComboBox antes de llenarlo
@@ -191,9 +218,8 @@ public class Main extends JFrame {
 
                 // Llenar el JComboBox con los datos de la base de datos
                 while (rs.next()) {
-                    String munic = rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el nombre correcto de la
-                                                                 // columna
-                    comboBoxMunic.addItem(munic);
+                    String municipio = rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el nombre correcto de la columna
+                    comboBoxMunic.addItem(municipio);
                 }
             }
 
@@ -204,37 +230,81 @@ public class Main extends JFrame {
         }
     }
 
-    private static void realizarConsultaFiltrada(String cader, String estado, String municipio, JLabel labelPlantas) {
+    // Método para realizar la consulta de cultivos
+    private static String realizarConsultaCultivo(String municipio, String cader, String estado) {
         String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Cultivos.accdb"; // Cambia la ruta según tu archivo
-    
+        StringBuilder cultivos = new StringBuilder(); // Usar StringBuilder para concatenar cultivos
+        String cultivoFinal = "";
+
         try (Connection conn = DriverManager.getConnection(url);
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Cierre_agr_mun_2023 WHERE Nomcader = ? AND Nomestado = ? AND Nommunicipio = ?")) {
-    
-            // Formatear estado
-            String estadoFormateado = estado.substring(0, 1).toUpperCase() + estado.substring(1).toLowerCase();
-    
-            // Establecer los parámetros
-            stmt.setString(1, cader);
-            stmt.setString(2, estadoFormateado);
-            stmt.setString(3, municipio);
-    
+                PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT Nomcultivo FROM Cierre_agr_mun_2023 WHERE Nommunicipio = ? AND Nomcader = ? AND Nomestado = ?")) {
+
+            stmt.setString(1, municipio);
+            stmt.setString(2, cader);
+            stmt.setString(3, estado);
+
             try (ResultSet rs = stmt.executeQuery()) {
-                // Limpiar el JLabel antes de mostrar nuevos resultados
-                labelPlantas.setText("");
-    
-                // Procesar los resultados
-                if (rs.next()) {
-                    String resultado = "Resultado encontrado: " + rs.getString("Nommunicipio"); // Cambia "Nommunicipio" por el campo deseado
-                    labelPlantas.setText(resultado);
+                boolean hayResultados = false;
+
+                while (rs.next()) {
+                    hayResultados = true;
+                    String cultivo = rs.getString("Nomcultivo"); // Cambia "Nomcultivo" por el campo correcto de la columna
+                    cultivos.append(cultivo).append("\n"); // Agregar el cultivo al StringBuilder con salto de línea
+                }
+
+                if (hayResultados) {
+                    // Mostrar todos los cultivos en el JTextArea
+                    textAreaCultivos.setText(cultivos.toString());
+                    cultivoFinal = cultivos.toString(); // Asignar a cultivoFinal para usarlo más tarde
                 } else {
-                    labelPlantas.setText("No se encontraron resultados para la búsqueda.");
+                    textAreaCultivos.setText("No se encontraron cultivos para la búsqueda.");
                 }
             }
-    
+
         } catch (SQLException e) {
             e.printStackTrace();
-            labelPlantas.setText("Error al conectarse a la base de datos.");
+            JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos.", "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+
+        return cultivoFinal; // Retornar el último cultivo encontrado
+    }
+
+    // Método para buscar plagas por cultivo
+    private static void buscarPlagasPorCultivo(String cultivo, JTextArea textAreaPlagas) {
+        String url = "jdbc:ucanaccess://Hackathon/src/main/databases/Plagas.accdb"; // Cambia la ruta según tu archivo
+
+        try (Connection conn = DriverManager.getConnection(url);
+                PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT 'Plaga 1' FROM Hoja1 WHERE Cultivo = ?")) {
+
+            stmt.setString(1, cultivo.trim()); // Asegurarse de que no haya espacios en blanco
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                StringBuilder plagas = new StringBuilder("Plagas encontradas:\n");
+
+                boolean hayPlagas = false;
+
+                while (rs.next()) {
+                    hayPlagas = true;
+                    String plaga = rs.getString("Plaga 1");
+                    plagas.append(plaga).append("\n"); // Agregar plaga con salto de línea
+                }
+
+                if (hayPlagas) {
+                    textAreaPlagas.setText(plagas.toString()); // Mostrar plagas en el JTextArea
+                    textAreaPlagas.setVisible(true); // Hacer visible el JTextArea de plagas
+                } else {
+                    textAreaPlagas.setText("No se encontraron plagas para el cultivo seleccionado.");
+                    textAreaPlagas.setVisible(true); // Hacer visible el JTextArea de plagas
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos.", "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
-    
 }
